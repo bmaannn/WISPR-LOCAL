@@ -36,9 +36,13 @@ except ImportError:
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-# MLX (GPU) — large-v3-turbo quality at interactive speed on Apple Silicon.
+# MLX (GPU) — small.en stays fast (~0.7s/phrase) even under memory pressure;
+# the personal vocabulary (vocab.py) covers names/jargon it would miss.
+# large-v3-turbo is more accurate but needs a fresh machine: under real-world
+# memory pressure (swap in use) it degrades to 4-5s per phrase on 16GB.
+#   WISPR_WHISPER_MODEL_MLX=mlx-community/whisper-large-v3-turbo  # max accuracy
 MLX_MODEL = os.getenv(
-    "WISPR_WHISPER_MODEL_MLX", "mlx-community/whisper-large-v3-turbo")
+    "WISPR_WHISPER_MODEL_MLX", "mlx-community/whisper-small.en-mlx")
 
 # CPU (faster-whisper) — benchmarked on M1 16GB (2.3s / 14.3s of speech):
 #   base.en          0.5s / 1.3s   — fastest
@@ -81,17 +85,7 @@ def _run_cpu(audio: np.ndarray, initial_prompt: str | None) -> str:
         word_timestamps=False,
         without_timestamps=True,
     )
-    # Strip trailing periods per segment before joining — distil models add a
-    # period at the end of every short phrase, which creates spurious
-    # mid-sentence periods when stream.py joins multiple phrases. Question and
-    # exclamation marks are kept so the polisher knows a sentence was a question.
-    parts = []
-    for seg in segments:
-        t = seg.text.strip()
-        t = re.sub(r'\.+$', '', t).strip()
-        if t:
-            parts.append(t)
-    return " ".join(parts).strip()
+    return " ".join(seg.text for seg in segments).strip()
 
 
 # ── MLX backend (Apple GPU) ───────────────────────────────────────────────────
