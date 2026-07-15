@@ -35,9 +35,13 @@ except ImportError:
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-# MLX (GPU) — large-v3-turbo quality at interactive speed on Apple Silicon.
+# MLX (GPU) — small.en stays fast (~0.7s/phrase) even under memory pressure;
+# the personal vocabulary (vocab.py) covers names/jargon it would miss.
+# large-v3-turbo is more accurate but needs a fresh machine: under real-world
+# memory pressure (swap in use) it degrades to 4-5s per phrase on 16GB.
+#   WISPR_WHISPER_MODEL_MLX=mlx-community/whisper-large-v3-turbo  # max accuracy
 MLX_MODEL = os.getenv(
-    "WISPR_WHISPER_MODEL_MLX", "mlx-community/whisper-large-v3-turbo")
+    "WISPR_WHISPER_MODEL_MLX", "mlx-community/whisper-small.en-mlx")
 
 # CPU (faster-whisper) — benchmarked on M1 16GB (2.3s / 14.3s of speech):
 #   base.en          0.5s / 1.3s   — fastest

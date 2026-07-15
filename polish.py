@@ -40,9 +40,12 @@ OLLAMA_URL = "http://localhost:11434/api/chat"
 TEMPERATURE = 0.0
 MAX_TOKENS  = 512    # polish output is always shorter than input; 512 is plenty
 
-# Keep the model loaded in RAM indefinitely (-1 = never unload). Honored by
-# the native API on every request.
-KEEP_ALIVE = -1
+# Keep the model warm for 30 minutes after each use. Honored by the native
+# API on every request. Pinning forever (-1) sounds nice but permanently
+# wires ~2.2GB of GPU memory, which on a 16GB machine adds to the system-wide
+# memory pressure that slows Whisper down; 30m keeps an active dictation
+# session warm while letting the RAM go when you walk away.
+KEEP_ALIVE = os.getenv("WISPR_KEEP_ALIVE", "30m")
 
 # ── System prompt ─────────────────────────────────────────────────────────────
 # This is the core "magic" — see blueprint Section: "The Critical Piece".
@@ -104,6 +107,9 @@ def _chat(system: str, user: str, temperature: float) -> str:
         "options": {
             "temperature": temperature,
             "num_predict": MAX_TOKENS,
+            # Dictations are short; the default 4096 context wastes a few
+            # hundred MB of KV-cache memory we'd rather leave to Whisper.
+            "num_ctx": 2048,
         },
         "messages": [
             {"role": "system", "content": system},
